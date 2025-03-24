@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/NoNamePL/kafka-go-broker/iternal/config"
 	mongodb "github.com/NoNamePL/kafka-go-broker/iternal/storage/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.OperationStorage) error {
@@ -69,7 +70,7 @@ func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.Operatio
 			for {
 				select {
 				case msg := <-pc.Messages():
-					db.Collection.InsertOne(context.TODO(),msg.Partition)
+					db.Collection.InsertOne(context.TODO(),bson.M{} msg.Partition)
 					fmt.Printf("Получено сообщение: Partition: %d, Offset: %d, Key: %s, Value: %s\n",
 						msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
 				case err := <-pc.Errors():
