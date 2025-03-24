@@ -54,6 +54,7 @@ for {
 		logger.Info("Shutting down consumer...")
 		return
 	default:
+		
 		msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
 			log.Printf("Error reading message: %v\n", err)
