@@ -1,12 +1,9 @@
 package models
 
-type User struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
+import "time"
 
 type Notification struct {
-	From    User   `json:"from"`
-	To      User   `json:"to"`
-	Message string `json:"message"`
+	ID        string    `json:"id" bson:"id"`
+	Data      string    `json:"data" bson:"data"`
+	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
 }

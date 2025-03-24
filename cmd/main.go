@@ -35,7 +35,7 @@ func main() {
 
 	logger.Info("Successfully connected to MongoDB")
 
-	// TODO: init broker
+	// init broker
 
 	err = kafka.StartConsumer(cfg,logger,operationsCollection)
 	if err != nil {

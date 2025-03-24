@@ -17,6 +17,7 @@ type Config struct {
 type kafkaConfig struct{
 	Address string
 	KafkaTopic string
+	KafkaGroupID string
 }
 
 func NewConfig() (*Config, error) {
@@ -32,6 +33,7 @@ func NewConfig() (*Config, error) {
 		KafkaConfig: kafkaConfig{
 			Address: os.Getenv("KafkaServerAddress"),
 			KafkaTopic: os.Getenv("KafkaTopic"),
+			KafkaGroupID: os.Getenv("KafkaGroupID"),
 		},
 	}
 	return &storage, nil

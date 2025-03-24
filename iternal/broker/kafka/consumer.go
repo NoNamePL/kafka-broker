@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/NoNamePL/kafka-go-broker/iternal/config"
 	mongodb "github.com/NoNamePL/kafka-go-broker/iternal/storage/mongo"
+	"github.com/NoNamePL/kafka-go-broker/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -35,11 +36,8 @@ func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.Operatio
 		}
 	}()
 
-	// Топик, который будем слушать
-	topic := cfg.KafkaConfig.KafkaTopic
-
 	// Получение партиций для топика
-	partitions, err := consumer.Partitions(topic)
+	partitions, err := consumer.Partitions(cfg.KafkaConfig.KafkaTopic)
 	if err != nil {
 		logger.Error("Ошибка при получении партиций:", "error", err)
 		return err
@@ -49,7 +47,49 @@ func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.Operatio
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 
-	// WaitGroup для ожидания завершения всех горутин
+	// Основной цикл обработки сообщений
+for {
+	select {
+	case <-signals:
+		logger.Info("Shutting down consumer...")
+		return
+	default:
+		msg, err := reader.ReadMessage(context.Background())
+		if err != nil {
+			log.Printf("Error reading message: %v\n", err)
+			continue
+		}
+
+		// Парсинг сообщения
+		var notification models.Notification
+		err = json.Unmarshal(msg.Value, &notification)
+		if err != nil {
+			log.Printf("Error unmarshalling message: %v\n", err)
+			continue
+		}
+
+		// Сохранение в MongoDB
+		_, err = collection.InsertOne(context.Background(), bson.M{
+			"kafka_offset": msg.Offset,
+			"kafka_partition": msg.Partition,
+			"kafka_timestamp": msg.Time,
+			"message": message,
+		})
+		if err != nil {
+			log.Printf("Error inserting document into MongoDB: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("Message saved to MongoDB: offset=%d partition=%d\n", msg.Offset, msg.Partition)
+	}
+}
+	
+	return nil
+}
+
+/*	
+
+// WaitGroup для ожидания завершения всех горутин
 	var wg sync.WaitGroup
 
 	// Чтение сообщений из каждой партиции
@@ -66,11 +106,20 @@ func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.Operatio
 			}
 			defer pc.AsyncClose()
 
+
+			
 			// Чтение сообщений
 			for {
 				select {
 				case msg := <-pc.Messages():
-					db.Collection.InsertOne(context.TODO(),bson.M{} msg.Partition)
+					db.Collection.InsertOne(context.TODO(),
+					bson.M{
+						"kafka_offset": msg.Offset,
+						"kafka_partition": msg.Partition,
+						"kafka_timestamp": msg.Time,
+						"message": message,
+					},
+					msg.Partition)
 					fmt.Printf("Получено сообщение: Partition: %d, Offset: %d, Key: %s, Value: %s\n",
 						msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
 				case err := <-pc.Errors():
@@ -85,5 +134,7 @@ func StartConsumer(cfg *config.Config, logger *slog.Logger, db *mongodb.Operatio
 	// Ожидание завершения всех горутин
 	wg.Wait()
 	logger.Info("Consumer завершил работу")
-	return nil
-}
+
+*/
+
+
